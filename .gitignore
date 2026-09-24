@@ -1,0 +1,8 @@
+node_modules/
+.env
+results/*.jsonl
+results/*.md
+*.log
+results/architecture-studio.png
+results/openops-demo.png
+results/openops-home.png

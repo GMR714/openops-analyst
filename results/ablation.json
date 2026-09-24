@@ -1,0 +1,496 @@
+{
+  "model": "qwen3:4b",
+  "embeddingModel": "embeddinggemma",
+  "cases": [
+    {
+      "id": "delayed-ticket",
+      "mode": "all",
+      "question": "For Northstar Supply, which orders are delayed and are there open support tickets for them?",
+      "requiredSources": [
+        "orders:O-0001",
+        "tickets:T-0001"
+      ],
+      "answer": "For Northstar Supply (C-001), the delayed order is O-0001 (Atlas Sensor). There is an open support ticket T-0001 for this order.",
+      "citations": [
+        "orders:O-0001",
+        "tickets:T-0001"
+      ],
+      "tools": [
+        "customer_profile",
+        "customer_orders",
+        "support_tickets",
+        "inventory_status",
+        "policy_lookup"
+      ],
+      "evidenceCount": 13,
+      "tokens": 1425,
+      "elapsedMs": 3247,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "model"
+    },
+    {
+      "id": "delayed-ticket",
+      "mode": "str",
+      "question": "For Northstar Supply, which orders are delayed and are there open support tickets for them?",
+      "requiredSources": [
+        "orders:O-0001",
+        "tickets:T-0001"
+      ],
+      "answer": "For Northstar Supply, the delayed order is O-0001. There is an open support ticket (T-0001) for this order.",
+      "citations": [
+        "orders:O-0001",
+        "tickets:T-0001"
+      ],
+      "tools": [
+        "customer_orders",
+        "support_tickets"
+      ],
+      "evidenceCount": 6,
+      "tokens": 1149,
+      "elapsedMs": 2889,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "model"
+    },
+    {
+      "id": "delayed-ticket",
+      "mode": "str_cp",
+      "question": "For Northstar Supply, which orders are delayed and are there open support tickets for them?",
+      "requiredSources": [
+        "orders:O-0001",
+        "tickets:T-0001"
+      ],
+      "answer": "For Northstar Supply, order O-0001 is delayed and has an open support ticket (T-0001).",
+      "citations": [
+        "orders:O-0001",
+        "tickets:T-0001"
+      ],
+      "tools": [
+        "customer_orders",
+        "support_tickets"
+      ],
+      "evidenceCount": 6,
+      "tokens": 579,
+      "elapsedMs": 2384,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "model"
+    },
+    {
+      "id": "stock",
+      "mode": "all",
+      "question": "For Northstar Supply, how many Nova Controllers are available in inventory?",
+      "requiredSources": [
+        "inventory:P-103"
+      ],
+      "answer": "0",
+      "citations": [
+        "inventory:P-103"
+      ],
+      "tools": [
+        "customer_profile",
+        "customer_orders",
+        "support_tickets",
+        "inventory_status",
+        "policy_lookup"
+      ],
+      "evidenceCount": 13,
+      "tokens": 1366,
+      "elapsedMs": 1800,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "model"
+    },
+    {
+      "id": "stock",
+      "mode": "str",
+      "question": "For Northstar Supply, how many Nova Controllers are available in inventory?",
+      "requiredSources": [
+        "inventory:P-103"
+      ],
+      "answer": "0",
+      "citations": [
+        "inventory:P-103"
+      ],
+      "tools": [
+        "customer_orders",
+        "inventory_status"
+      ],
+      "evidenceCount": 8,
+      "tokens": 842,
+      "elapsedMs": 1750,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "model"
+    },
+    {
+      "id": "stock",
+      "mode": "str_cp",
+      "question": "For Northstar Supply, how many Nova Controllers are available in inventory?",
+      "requiredSources": [
+        "inventory:P-103"
+      ],
+      "answer": "0",
+      "citations": [
+        "inventory:P-103"
+      ],
+      "tools": [
+        "customer_orders",
+        "inventory_status"
+      ],
+      "evidenceCount": 8,
+      "tokens": 530,
+      "elapsedMs": 1606,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "model"
+    },
+    {
+      "id": "customer-region",
+      "mode": "all",
+      "question": "Which region is Northstar Supply in?",
+      "requiredSources": [
+        "customers:C-001"
+      ],
+      "answer": "North",
+      "citations": [
+        "customers:C-001"
+      ],
+      "tools": [
+        "customer_profile",
+        "customer_orders",
+        "support_tickets",
+        "inventory_status",
+        "policy_lookup"
+      ],
+      "evidenceCount": 13,
+      "tokens": 1360,
+      "elapsedMs": 1792,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "model"
+    },
+    {
+      "id": "customer-region",
+      "mode": "str",
+      "question": "Which region is Northstar Supply in?",
+      "requiredSources": [
+        "customers:C-001"
+      ],
+      "answer": "North",
+      "citations": [
+        "customers:C-001"
+      ],
+      "tools": [
+        "customer_profile",
+        "inventory_status"
+      ],
+      "evidenceCount": 5,
+      "tokens": 348,
+      "elapsedMs": 1569,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "model"
+    },
+    {
+      "id": "customer-region",
+      "mode": "str_cp",
+      "question": "Which region is Northstar Supply in?",
+      "requiredSources": [
+        "customers:C-001"
+      ],
+      "answer": "North",
+      "citations": [
+        "customers:C-001"
+      ],
+      "tools": [
+        "customer_profile",
+        "inventory_status"
+      ],
+      "evidenceCount": 5,
+      "tokens": 312,
+      "elapsedMs": 1503,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "model"
+    },
+    {
+      "id": "refund-policy",
+      "mode": "all",
+      "question": "Does an open support ticket by Northstar Supply alone make the customer eligible for a refund under the policy?",
+      "requiredSources": [
+        "policy:refund"
+      ],
+      "answer": "No. An open support ticket alone does not establish refund eligibility. The policy requires a verified billing issue or an approved return.",
+      "citations": [
+        "policy:refund"
+      ],
+      "tools": [
+        "customer_profile",
+        "customer_orders",
+        "support_tickets",
+        "inventory_status",
+        "policy_lookup"
+      ],
+      "evidenceCount": 13,
+      "tokens": 1374,
+      "elapsedMs": 1793,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "rule"
+    },
+    {
+      "id": "refund-policy",
+      "mode": "str",
+      "question": "Does an open support ticket by Northstar Supply alone make the customer eligible for a refund under the policy?",
+      "requiredSources": [
+        "policy:refund"
+      ],
+      "answer": "No. An open support ticket alone does not establish refund eligibility. The policy requires a verified billing issue or an approved return.",
+      "citations": [
+        "policy:refund"
+      ],
+      "tools": [
+        "support_tickets",
+        "policy_lookup"
+      ],
+      "evidenceCount": 4,
+      "tokens": 669,
+      "elapsedMs": 1644,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "rule"
+    },
+    {
+      "id": "refund-policy",
+      "mode": "str_cp",
+      "question": "Does an open support ticket by Northstar Supply alone make the customer eligible for a refund under the policy?",
+      "requiredSources": [
+        "policy:refund"
+      ],
+      "answer": "No. An open support ticket alone does not establish refund eligibility. The policy requires a verified billing issue or an approved return.",
+      "citations": [
+        "policy:refund"
+      ],
+      "tools": [
+        "support_tickets",
+        "policy_lookup"
+      ],
+      "evidenceCount": 4,
+      "tokens": 375,
+      "elapsedMs": 1557,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "rule"
+    },
+    {
+      "id": "delay-policy",
+      "mode": "all",
+      "question": "As of 2026-09-23, under the delay policy, can Northstar Supply escalate order O-0001?",
+      "requiredSources": [
+        "orders:O-0001",
+        "policy:delay"
+      ],
+      "answer": "No. Order O-0001 is delayed, but its promised date 2026-10-01 is after 2026-09-23. The delay policy permits escalation only after the promised date.",
+      "citations": [
+        "orders:O-0001",
+        "policy:delay"
+      ],
+      "tools": [
+        "customer_profile",
+        "customer_orders",
+        "support_tickets",
+        "inventory_status",
+        "policy_lookup"
+      ],
+      "evidenceCount": 13,
+      "tokens": 1396,
+      "elapsedMs": 2068,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "rule"
+    },
+    {
+      "id": "delay-policy",
+      "mode": "str",
+      "question": "As of 2026-09-23, under the delay policy, can Northstar Supply escalate order O-0001?",
+      "requiredSources": [
+        "orders:O-0001",
+        "policy:delay"
+      ],
+      "answer": "No. Order O-0001 is delayed, but its promised date 2026-10-01 is after 2026-09-23. The delay policy permits escalation only after the promised date.",
+      "citations": [
+        "orders:O-0001",
+        "policy:delay"
+      ],
+      "tools": [
+        "customer_orders",
+        "inventory_status",
+        "policy_lookup"
+      ],
+      "evidenceCount": 10,
+      "tokens": 949,
+      "elapsedMs": 2030,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "rule"
+    },
+    {
+      "id": "delay-policy",
+      "mode": "str_cp",
+      "question": "As of 2026-09-23, under the delay policy, can Northstar Supply escalate order O-0001?",
+      "requiredSources": [
+        "orders:O-0001",
+        "policy:delay"
+      ],
+      "answer": "No. Order O-0001 is delayed, but its promised date 2026-10-01 is after 2026-09-23. The delay policy permits escalation only after the promised date.",
+      "citations": [
+        "orders:O-0001",
+        "policy:delay"
+      ],
+      "tools": [
+        "customer_orders",
+        "inventory_status",
+        "policy_lookup"
+      ],
+      "evidenceCount": 10,
+      "tokens": 617,
+      "elapsedMs": 1601,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "rule"
+    },
+    {
+      "id": "shipped-orders",
+      "mode": "all",
+      "question": "For Morrow Retail, which orders are shipped and what are their promised dates?",
+      "requiredSources": [
+        "orders:O-0005",
+        "orders:O-0006",
+        "orders:O-0008"
+      ],
+      "answer": "Morrow Retail has three orders shipped with promised dates: O-0005 (2026-10-06), O-0006 (2026-10-07), and O-0008 (2026-10-09).",
+      "citations": [
+        "orders:O-0005",
+        "orders:O-0006",
+        "orders:O-0008"
+      ],
+      "tools": [
+        "customer_profile",
+        "customer_orders",
+        "support_tickets",
+        "inventory_status",
+        "policy_lookup"
+      ],
+      "evidenceCount": 12,
+      "tokens": 2592,
+      "elapsedMs": 5584,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "model"
+    },
+    {
+      "id": "shipped-orders",
+      "mode": "str",
+      "question": "For Morrow Retail, which orders are shipped and what are their promised dates?",
+      "requiredSources": [
+        "orders:O-0005",
+        "orders:O-0006",
+        "orders:O-0008"
+      ],
+      "answer": "For Morrow Retail, the orders shipped with their promised dates are: O-0005 (promised on 2026-10-06), O-0006 (promised on 2026-10-07), and O-0008 (promised on 2026-10-09).",
+      "citations": [
+        "orders:O-0005",
+        "orders:O-0006",
+        "orders:O-0008"
+      ],
+      "tools": [
+        "customer_orders",
+        "inventory_status"
+      ],
+      "evidenceCount": 8,
+      "tokens": 950,
+      "elapsedMs": 3857,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "model"
+    },
+    {
+      "id": "shipped-orders",
+      "mode": "str_cp",
+      "question": "For Morrow Retail, which orders are shipped and what are their promised dates?",
+      "requiredSources": [
+        "orders:O-0005",
+        "orders:O-0006",
+        "orders:O-0008"
+      ],
+      "answer": "For Morrow Retail, the shipped orders with their promised dates are: O-0005 (promised on 2026-10-06), O-0006 (promised on 2026-10-07), and O-0008 (promised on 2026-10-09).",
+      "citations": [
+        "orders:O-0005",
+        "orders:O-0006",
+        "orders:O-0008"
+      ],
+      "tools": [
+        "customer_orders",
+        "inventory_status"
+      ],
+      "evidenceCount": 8,
+      "tokens": 632,
+      "elapsedMs": 3567,
+      "evidenceRecall": 1,
+      "citationRecall": 1,
+      "cannotAnswer": false,
+      "resolution": "model"
+    }
+  ],
+  "summaries": [
+    {
+      "mode": "all",
+      "cases": 6,
+      "completed": 6,
+      "meanTokens": 1585.5,
+      "meanElapsedMs": 2714,
+      "meanEvidenceRecall": 1,
+      "meanCitationRecall": 1,
+      "ruleFallbacks": 2
+    },
+    {
+      "mode": "str",
+      "cases": 6,
+      "completed": 6,
+      "meanTokens": 817.8333333333334,
+      "meanElapsedMs": 2289.8333333333335,
+      "meanEvidenceRecall": 1,
+      "meanCitationRecall": 1,
+      "ruleFallbacks": 2
+    },
+    {
+      "mode": "str_cp",
+      "cases": 6,
+      "completed": 6,
+      "meanTokens": 507.5,
+      "meanElapsedMs": 2036.3333333333333,
+      "meanEvidenceRecall": 1,
+      "meanCitationRecall": 1,
+      "ruleFallbacks": 2
+    }
+  ]
+}
