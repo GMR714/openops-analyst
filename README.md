@@ -2,7 +2,7 @@
 
 A local operations analyst for a fictional distributor. It answers questions across orders, support tickets, inventory, customer profiles, and policy, with source IDs that can be inspected beside the answer. The data and prompts in this repository were created for the demo; no employer code or data is included.
 
-![Architecture Studio with the Jev blocks and model documentation](results/architecture-studio-jev.png)
+![Architecture Studio showing the Jev hover explanation and model documentation link](results/architecture-studio-hover.png)
 
 ## Run locally
 
@@ -15,7 +15,7 @@ ollama pull qwen3:4b
 npm run web
 ```
 
-Open `http://127.0.0.1:4173`. Drag a block from the library into its stage, or click it to add it. Hover over a block to see its purpose, adjustable parameters, and a link to the associated paper or model documentation in the detail panel. Ask the same question with a different pipeline to compare its answer, citations, tools, token count, and step trace. `?demo=1` runs the default question on load. The pipeline configuration is saved in browser local storage; conversation history stays in the current tab and can be cleared. The scenario shelf offers 12 cases across lookup, inventory, lists, joins, policy, memory, missing coverage and adversarial instructions. After a run, use **Fixar última execução** to pin it, change the blocks or parameters, then choose **Comparar com referência**. The comparison reuses the pinned question, model and input history, and shows both answers, citations, tool counts, tokens and latency. It does not add a turn to the conversation.
+Open `http://127.0.0.1:4173`. Drag a block from the library into its stage, or click it to add it. Hover over a block to open a preview with its purpose, adjustable parameters, and a direct link to the related paper or model documentation. The detail panel keeps the selected block visible while you configure it. Ask the same question with a different pipeline to compare its answer, citations, tools, token count, and step trace. `?demo=1` runs the default question on load. The pipeline configuration is saved in browser local storage; conversation history stays in the current tab and can be cleared. The scenario shelf offers 12 cases across lookup, inventory, lists, joins, policy, memory, missing coverage and adversarial instructions. After a run, use **Fixar última execução** to pin it, change the blocks or parameters, then choose **Comparar com referência**. The comparison reuses the pinned question, model and input history, and shows both answers, citations, tool counts, tokens and latency. It does not add a turn to the conversation.
 
 The command-line workflow and its original three-mode diagnostic are still available:
 
@@ -55,6 +55,8 @@ The legacy CLI uses LangGraph. The studio's configurable runner is a typed pipel
 The API exposes `GET /api/architecture`, `GET /api/scenarios`, `GET /api/models`, and `POST /api/analyze`. A request with `pipeline.blocks` invokes the studio runner; a request with a legacy `mode` (`all`, `str`, `str_cp`) invokes the original LangGraph workflow. No API key is required for the local Ollama setup; Jev needs a server-side TypeSafe key. The browser never receives that key. The HTTP server binds to `127.0.0.1`.
 
 ## Scenario evaluation
+
+![Scenario shelf with difficulty and category filters](results/scenario-shelf.png)
 
 `npm run eval:studio` runs 12 synthetic cases through four fixed profiles: broad retrieval (`wide`), semantic retrieval (`local`), Jev checklist plus tool selection (`jev`), and those Jev blocks with memory (`jev_memory`). The cases range from direct lookups to cross-record joins, date-sensitive policy checks, a follow-up turn, missing data, ambiguous customers, and an injected order ID. The [recorded case results](results/studio-eval.json) include each answer, selected tools, citations, token counts, latency, and pass/fail checks.
 
