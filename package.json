@@ -8,7 +8,8 @@
     "eval": "tsx src/eval.ts",
     "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "web": "tsx src/server.ts"
+    "web": "tsx src/server.ts",
+    "eval:studio": "tsx src/studio_eval.ts"
   },
   "dependencies": {
     "@langchain/langgraph": "1.4.17",

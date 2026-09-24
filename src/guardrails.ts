@@ -32,6 +32,15 @@ export function groundedFallback(question: string, evidence: Evidence[]): { answ
     const ticketText = linked.length ? linked.map(item => `${item.payload.id} for ${item.payload.orderId}`).join(', ') : 'none in the available records'
     return { answer: `Delayed orders: ${orderText}. Open support tickets linked to these orders: ${ticketText}.`, citations: [...delayed, ...linked].map(item => item.source), cannotAnswer: false }
   }
+  if (/delayed orders|orders.*delayed/.test(lower)) {
+    const delayed = evidence.filter(item => item.source.startsWith('orders:') && item.payload.status === 'delayed')
+    if (!delayed.length) return undefined
+    return {
+      answer: 'Delayed orders: ' + delayed.map(item => String(item.payload.id) + ' (promised ' + String(item.payload.promisedOn) + ')').join(', ') + '.',
+      citations: delayed.map(item => item.source),
+      cannotAnswer: false
+    }
+  }
   if (/which orders are shipped/.test(lower)) {
     const shipped = evidence.filter(item => item.source.startsWith('orders:') && item.payload.status === 'shipped')
     if (!shipped.length) return undefined

@@ -2,7 +2,9 @@ import { z } from 'zod/v4'
 
 export const architecture = [
   { id: 'ar', name: 'Adaptive router', stage: 'route', summary: 'Classifica a complexidade da pergunta e ajusta o orçamento de seleção de ferramentas.', paper: 'RouteLLM', url: 'https://arxiv.org/abs/2406.18665', relation: 'inspiration', settings: [{ key: 'deepThreshold', label: 'Limiar para rota profunda', min: 1, max: 4, value: 2 }] },
+  { id: 'jc', name: 'Jev response checklist', stage: 'route', summary: 'Antes do LLM, pontua os campos que a resposta precisa conter. A meta orienta a coleta de fatos e a resposta.', paper: 'Jev model documentation', url: 'https://docs.typesafe.ai/models', relation: 'model documentation', settings: [{ key: 'threshold', label: 'Limiar dos campos (%)', min: 1, max: 99, value: 50 }] },
   { id: 'str', name: 'Semantic tool retrieval', stage: 'select', summary: 'Compara a pergunta às descrições das ferramentas e ativa as mais relevantes.', paper: 'ToolLLM / ToolRetriever', url: 'https://arxiv.org/abs/2307.16789', relation: 'inspiration', settings: [{ key: 'topK', label: 'Ferramentas iniciais', min: 1, max: 5, value: 2 }] },
+  { id: 'js', name: 'Jev tool selection', stage: 'select', summary: 'Pontua todas as ferramentas em uma chamada e entrega ao executor um conjunto limitado. Em falha, usa seleção semântica.', paper: 'Jev API reference', url: 'https://docs.typesafe.ai/api', relation: 'model documentation', settings: [{ key: 'maxTools', label: 'Máximo de ferramentas', min: 3, max: 12, value: 12 }, { key: 'minCandidates', label: 'Acionar acima de N ferramentas', min: 1, max: 14, value: 12 }] },
   { id: 'at', name: 'AutoTool', stage: 'select', summary: 'Usa transições entre ferramentas para antecipar uma consulta relacionada, com limite de expansão.', paper: 'AutoTool', url: 'https://arxiv.org/abs/2511.14650', relation: 'adaptation', settings: [{ key: 'threshold', label: 'Confiança mínima (%)', min: 1, max: 100, value: 45 }] },
   { id: 'tr', name: 'TeaRAG', stage: 'retrieve', summary: 'Relaciona registros por entidade e vínculo operacional, depois reordena evidências por proximidade à pergunta.', paper: 'TeaRAG', url: 'https://arxiv.org/abs/2511.05385', relation: 'adaptation', settings: [{ key: 'maxRecords', label: 'Registros no contexto', min: 4, max: 40, value: 24 }] },
   { id: 'cp', name: 'Compact payload', stage: 'context', summary: 'Retira campos diagnósticos repetidos dos registros sem remover fatos operacionais ou IDs de origem.', paper: 'LLMLingua', url: 'https://arxiv.org/abs/2310.05736', relation: 'inspiration', settings: [] },
@@ -37,8 +39,8 @@ export const pipelineSchema = z.object({ blocks: z.array(blockSchema).max(archit
       if (!setting || !Number.isInteger(val) || val < setting.min || val > setting.max) context.addIssue({ code: 'custom', message: `Parâmetro inválido: ${block.id}.${key}` })
     }
   }
-  const incompatible: BlockId[][] = [['mb', 'm1'], ['mb', 'acc'], ['m1', 'acc']]
-  if (incompatible.some(pair => pair.every(id => seen.has(id)))) context.addIssue({ code: 'custom', message: 'Escolha apenas uma arquitetura de memória por execução.' })
+  const incompatible: BlockId[][] = [['mb', 'm1'], ['mb', 'acc'], ['m1', 'acc'], ['str', 'js']]
+  if (incompatible.some(pair => pair.every(id => seen.has(id)))) context.addIssue({ code: 'custom', message: 'Escolha uma estratégia por função: memória ou seleção de ferramentas.' })
 })
 
 export const defaultPipeline: Pipeline = { blocks: ['ar', 'str', 'at', 'tr', 'cp', 'rts', 'rr'].map(id => ({ id: id as BlockId, params: {} })) }

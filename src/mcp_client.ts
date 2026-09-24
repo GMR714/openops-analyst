@@ -18,7 +18,7 @@ export async function collectEvidence(selected: Tool[], customerId: string): Pro
       if (!block || block.type !== 'text') throw new Error(`MCP tool returned no text: ${tool.name}`)
       evidence.push(...EvidenceSchema.parse(JSON.parse(block.text)))
     }
-    return evidence
+    return [...new Map(evidence.map(item => [item.source, item])).values()]
   } finally {
     await client.close()
   }

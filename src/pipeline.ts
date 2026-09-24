@@ -3,8 +3,11 @@ import { architecture, parameter, pipelineSchema, type BlockId, type Pipeline, t
 import { resolveCustomer } from './fixtures.js'
 import { groundedFallback, requiredEvidence } from './guardrails.js'
 import { collectEvidence } from './mcp_client.js'
+import { askJev } from './jev.js'
+import { checklistFields, checklistTools, factSheet, requiredFields, type FieldId } from './checklist.js'
+import { studioTools } from './studio_tools.js'
 import { selectTools } from './retrieval.js'
-import { compact, tools, type Evidence, type Tool } from './tools.js'
+import { compact, type Evidence, type Tool } from './tools.js'
 import { decideDelayEscalation, decideRefundEligibility, verifyAnswer } from './verify.js'
 
 export type Turn = { question: string; answer: string; tools?: string[] }
@@ -20,6 +23,7 @@ export type PipelineResult = {
   elapsedMs: number
   trace: Trace[]
   route: 'standard' | 'deep'
+  jev: { calls: number; inputTokens: number; outputTokens: number; checklist: FieldId[]; selectedTools: string[]; fallback: boolean }
 }
 
 const draftSchema = z.object({ answer: z.string(), citations: z.array(z.string()), cannotAnswer: z.boolean() })
@@ -106,7 +110,7 @@ function scoreQuestion(question: string): number {
   return score
 }
 
-function expandAutoTool(question: string, selected: Tool[], threshold: number, history: Turn[]): Tool[] {
+function expandAutoTool(question: string, selected: Tool[], threshold: number, history: Turn[], catalog: Tool[]): Tool[] {
   const transitions: Record<string, Array<{ next: string; cue: RegExp; weight: number }>> = {
     customer_orders: [{ next: 'support_tickets', cue: /ticket|support|issue|delay/i, weight: .82 }, { next: 'inventory_status', cue: /stock|available|product/i, weight: .68 }],
     support_tickets: [{ next: 'policy_lookup', cue: /refund|policy|eligible/i, weight: .78 }],
@@ -126,12 +130,12 @@ function expandAutoTool(question: string, selected: Tool[], threshold: number, h
     }
     const counts = observed.get(current.name)
     if (counts) for (const [next, count] of counts) {
-      const candidate = tools.find(tool => tool.name === next)
+      const candidate = catalog.find(tool => tool.name === next)
       if (candidate && count / history.length * 100 >= threshold && similarity(question, candidate.description) > .1) result.add(next)
     }
   }
   const cap = selected.length + 1
-  return [...selected, ...tools.filter(tool => result.has(tool.name) && !selected.some(chosen => chosen.name === tool.name)).slice(0, cap - selected.length)]
+  return [...selected, ...catalog.filter(tool => result.has(tool.name) && !selected.some(chosen => chosen.name === tool.name)).slice(0, cap - selected.length)]
 }
 
 
@@ -146,25 +150,99 @@ export async function analyzePipeline(question: string, pipelineInput: Pipeline,
   const route = routeBlock && difficulty >= parameter(routeBlock, 'deepThreshold') ? 'deep' : 'standard'
   if (routeBlock) record('ar', performance.now(), `Route ${route}; difficulty ${difficulty}/4`)
 
+  const jev = { calls: 0, inputTokens: 0, outputTokens: 0, checklist: [] as FieldId[], selectedTools: [] as string[], fallback: false }
   const memoryBlock = pipeline.blocks.find(block => ['mb', 'm1', 'acc'].includes(block.id))
   const customer = resolveCustomer(question) || (memoryBlock ? [...history].reverse().map(turn => resolveCustomer(turn.question)).find(Boolean) : undefined)
-  let selected = tools
+  if (!customer) return { answer: 'No single customer could be identified in the question or conversation.', citations: [], cannotAnswer: true, resolution: 'abstain', evidence: [], tools: [], tokens: 0, elapsedMs: Math.round(performance.now() - start), trace, route, jev }
+
+  const checklistBlock = chosen('jc')
+  if (checklistBlock) {
+    const began = performance.now()
+    try {
+      const questions = Object.fromEntries(checklistFields.map(field => [field.id, {
+        type: 'noul' as const,
+        instructions: `Does the final answer to user_request need to state ${field.description}? Consider prior user questions when the current question refers back to them.`
+      }]))
+      const decision = await askJev({ user_request: question, conversation_context: history.slice(-6).map(turn => turn.question) }, questions)
+      jev.calls++
+      jev.inputTokens += decision.inputTokens
+      jev.outputTokens += decision.outputTokens
+      jev.checklist = requiredFields(decision.scores, parameter(checklistBlock, 'threshold') / 100)
+      record('jc', began, `Goal: ${jev.checklist.join(', ') || 'no required field'}; ${decision.inputTokens} Jev input tokens`)
+    } catch (error) {
+      jev.fallback = true
+      record('jc', began, `Checklist unavailable (${error instanceof Error ? error.message : 'unknown error'}); ordinary source checks remain active`)
+    }
+  }
+
+  let selected = studioTools
   const strBlock = chosen('str')
   if (strBlock) {
     const began = performance.now()
-    selected = await selectTools(question, 'str', parameter(strBlock, 'topK') + (route === 'deep' ? 1 : 0))
-    record('str', began, selected.map(tool => tool.name).join(', '), tools.length, selected.length)
+    selected = await selectTools(question, 'str', parameter(strBlock, 'topK') + (route === 'deep' ? 1 : 0), studioTools)
+    record('str', began, selected.map(tool => tool.name).join(', '), studioTools.length, selected.length)
+  }
+  const jevSelectBlock = chosen('js')
+  if (jevSelectBlock) {
+    const began = performance.now()
+    if (studioTools.length > parameter(jevSelectBlock, 'minCandidates')) {
+      try {
+        const questions = Object.fromEntries(studioTools.map(tool => [tool.name, {
+          type: 'noul' as const,
+          instructions: `To fully answer user_request, will the agent need the data tool "${tool.name}"? Tool purpose and input: ${tool.description}`
+        }]))
+        const decision = await askJev({
+          user_request: question,
+          conversation_context: history.slice(-6).map(turn => turn.question),
+          tools_already_called: history.flatMap(turn => turn.tools || []),
+          router_plan: route
+        }, questions)
+        jev.calls++
+        jev.inputTokens += decision.inputTokens
+        jev.outputTokens += decision.outputTokens
+        const ranked = [...studioTools].sort((a, b) => decision.scores[b.name] - decision.scores[a.name])
+        const maxTools = parameter(jevSelectBlock, 'maxTools')
+        const names = new Set(ranked.filter(tool => decision.scores[tool.name] >= .5).slice(0, maxTools).map(tool => tool.name))
+        for (const tool of ranked.slice(0, 3)) names.add(tool.name)
+        selected = ranked.filter(tool => names.has(tool.name)).slice(0, maxTools)
+        record('js', began, `${studioTools.length} → ${selected.length} tools: ${selected.map(tool => tool.name).join(', ')}; ${decision.inputTokens} Jev input tokens`, studioTools.length, selected.length)
+      } catch (error) {
+        jev.fallback = true
+        selected = await selectTools(question, 'str', route === 'deep' ? 4 : 3, studioTools)
+        record('js', began, `Jev unavailable (${error instanceof Error ? error.message : 'unknown error'}); semantic fallback: ${selected.map(tool => tool.name).join(', ')}`, studioTools.length, selected.length)
+      }
+    } else {
+      record('js', began, `Skipped: ${studioTools.length} candidates do not exceed the configured threshold`)
+    }
   }
   const atBlock = chosen('at')
   if (atBlock) {
     const began = performance.now()
     const before = selected.length
-    selected = expandAutoTool(question, selected, parameter(atBlock, 'threshold'), history)
+    selected = expandAutoTool(question, selected, parameter(atBlock, 'threshold'), history, studioTools)
     record('at', began, selected.map(tool => tool.name).join(', '), before, selected.length)
   }
+  jev.selectedTools = selected.map(tool => tool.name)
 
-  if (!customer) return { answer: 'No single customer could be identified in the question or conversation.', citations: [], cannotAnswer: true, resolution: 'abstain', evidence: [], tools: selected.map(tool => tool.name), tokens: 0, elapsedMs: Math.round(performance.now() - start), trace, route }
   let evidence = await collectEvidence(selected, customer.id)
+  if (checklistBlock && jev.checklist.length) {
+    const began = performance.now()
+    const missing = checklistTools(jev.checklist).filter(name => !selected.some(tool => tool.name === name))
+    const beforeGate = selected.length
+    for (const name of missing) {
+      const tool = studioTools.find(candidate => candidate.name === name)!
+      try {
+        const extra = await collectEvidence([tool], customer.id)
+        evidence = [...new Map([...evidence, ...extra].map(item => [item.source, item])).values()]
+        selected.push(tool)
+      } catch {
+        jev.fallback = true
+        record('jc', began, `Source unavailable for ${name}; no-record claims are not inferred`)
+      }
+    }
+    jev.selectedTools = selected.map(tool => tool.name)
+    record('jc', began, missing.length ? `Fact gate requested ${missing.join(', ')} before answer composition` : 'Fact gate: required source tools already called', beforeGate, selected.length)
+  }
   const original = evidence
   const trBlock = chosen('tr')
   if (trBlock) {
@@ -193,6 +271,13 @@ export async function analyzePipeline(question: string, pipelineInput: Pipeline,
     const allowed = new Set(ids)
     const wanted = new Set(picked.value.sourceIds.filter(id => allowed.has(id)).slice(0, parameter(rtsBlock, 'maxRecords')))
     for (const id of requiredEvidence(question, evidence)) wanted.add(id)
+    for (const field of jev.checklist) {
+      const prefix = ['identity', 'region'].includes(field) ? 'customers:'
+        : ['order_ids', 'order_status', 'promised_dates', 'order_products'].includes(field) ? 'orders:'
+        : field === 'tickets' ? 'tickets:' : field === 'inventory' ? 'inventory:'
+        : field === 'delay_policy' ? 'policy:delay' : field === 'refund_policy' ? 'policy:refund' : ''
+      for (const item of evidence) if (prefix && item.source.startsWith(prefix)) wanted.add(item.source)
+    }
     if (wanted.size) evidence = evidence.filter(item => wanted.has(item.source))
     record('rts', began, `${wanted.size || ids.length} verified source IDs recited`, ids.length, evidence.length)
   }
@@ -202,12 +287,14 @@ export async function analyzePipeline(question: string, pipelineInput: Pipeline,
     memory = memoryText(memoryBlock.id, history, memoryBlock)
     record(memoryBlock.id, began, memory ? `${history.length} turn(s) condensed to ${memory.length} characters` : 'No earlier turns supplied', history.length, memory.length)
   }
-  if (!evidence.length) return { answer: 'The selected tools returned no evidence for this customer.', citations: [], cannotAnswer: true, resolution: 'abstain', evidence, tools: selected.map(tool => tool.name), tokens, elapsedMs: Math.round(performance.now() - start), trace, route }
+  if (!evidence.length) return { answer: 'The selected tools returned no evidence for this customer.', citations: [], cannotAnswer: true, resolution: 'abstain', evidence, tools: selected.map(tool => tool.name), tokens, elapsedMs: Math.round(performance.now() - start), trace, route, jev }
 
-  const system = 'Answer only from the supplied records. Return JSON with answer, citations (source IDs), and cannotAnswer. Explain the relevant record fact and policy rule when applying a policy. Cite both sources. For lists, include every matching record. If evidence is insufficient, say so. Do not treat conversation memory as evidence.'
+  const goal = jev.checklist.length ? jev.checklist.map(id => checklistFields.find(field => field.id === id)!.label).join(', ') : ''
+  const system = 'Answer only from the supplied verified facts or records. Return JSON with answer, citations (source IDs), and cannotAnswer. Explain the relevant record fact and policy rule when applying a policy. Cite both sources. For lists, include every matching record. If evidence is insufficient, say so. Do not treat conversation memory as evidence. Use identifiers, dates and quantities literally.' + (goal ? ` The final answer needs to inform: ${goal}. Include each requested item for every relevant entity.` : '')
+  const context = jev.checklist.length ? { verifiedFactSheet: factSheet(evidence) } : { records: evidence }
   const messages = [
     { role: 'system', content: system },
-    { role: 'user', content: JSON.stringify({ question, records: evidence, conversationMemory: memory || undefined }) }
+    { role: 'user', content: JSON.stringify({ question, ...context, conversationMemory: memory || undefined }) }
   ]
   const generated = await chatJson(model, draftSchema, messages)
   tokens += generated.tokens
@@ -232,7 +319,7 @@ export async function analyzePipeline(question: string, pipelineInput: Pipeline,
     record('rv', began, `${feedback.value.issues.length} issue(s); ${feedback.value.issues.length ? 'revised' : 'passed'}`)
   }
   const rrBlock = chosen('rr')
-  if (rrBlock && !draft.cannotAnswer) {
+  if ((rrBlock || checklistBlock) && !draft.cannotAnswer) {
     const began = performance.now()
     let issues = verifyAnswer(question, evidence, draft)
     if (issues.length) {
@@ -246,10 +333,10 @@ export async function analyzePipeline(question: string, pipelineInput: Pipeline,
         if (issues.length) { draft = { answer: 'The answer could not be verified against the collected records.', citations: [], cannotAnswer: true }; resolution = 'abstain' }
       }
     }
-    record('rr', began, resolution === 'rule' ? 'Grounded fallback' : resolution === 'abstain' ? 'Abstained after failed repair' : 'Source checks passed')
+    record(rrBlock ? 'rr' : 'jc', began, resolution === 'rule' ? 'Grounded fallback' : resolution === 'abstain' ? 'Abstained after failed repair' : 'Source checks passed')
   }
   if (!draft.cannotAnswer && !draft.citations.length) { draft = { answer: 'The answer had no verifiable source citation.', citations: [], cannotAnswer: true }; resolution = 'abstain' }
-  return { ...draft, resolution, evidence, tools: selected.map(tool => tool.name), tokens, elapsedMs: Math.round(performance.now() - start), trace, route }
+  return { ...draft, resolution, evidence, tools: selected.map(tool => tool.name), tokens, elapsedMs: Math.round(performance.now() - start), trace, route, jev }
 }
 
 export const publicArchitecture = architecture.map(({ id, name, stage, summary, paper, url, relation, settings }) => ({ id, name, stage, summary, paper, url, relation, settings }))

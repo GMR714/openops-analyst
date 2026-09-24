@@ -15,6 +15,7 @@ export function verifyAnswer(question: string, evidence: Evidence[], draft: Draf
   for (const id of draft.answer.match(/\b[OT]-\d{4}\b/g) || []) {
     const source = `${id.startsWith('O') ? 'orders' : 'tickets'}:${id}`
     if (available.has(source)) required.add(source)
+    else issues.push(`The answer contains unsupported identifier ${id}.`)
   }
 
   if (/which orders are shipped/.test(lower)) {

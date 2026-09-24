@@ -5,6 +5,8 @@ import { z } from 'zod/v4'
 import { analyze } from './analyst.js'
 import { defaultPipeline, pipelineSchema } from './architecture.js'
 import { analyzePipeline, publicArchitecture } from './pipeline.js'
+import { jevConfigured } from './jev.js'
+import { publicScenarios } from './scenarios.js'
 
 const page = fileURLToPath(new URL('../public/index.html', import.meta.url))
 const questionSchema = z.string().trim().min(8).max(500)
@@ -13,7 +15,7 @@ const schema = z.object({
   mode: z.enum(['all', 'str', 'str_cp']).optional(),
   model: z.string().regex(/^[A-Za-z0-9._:/-]+$/).max(80).optional(),
   pipeline: pipelineSchema.optional(),
-  history: z.array(z.object({ question: questionSchema, answer: z.string().max(1200), tools: z.array(z.string()).max(5).optional() })).max(12).default([])
+  history: z.array(z.object({ question: questionSchema, answer: z.string().max(1200), tools: z.array(z.string()).max(14).optional() })).max(12).default([])
 })
 
 createServer(async (request, response) => {
@@ -25,7 +27,12 @@ createServer(async (request, response) => {
   }
   if (request.method === 'GET' && pathname === '/api/architecture') {
     response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
-    response.end(JSON.stringify({ blocks: publicArchitecture, pipeline: defaultPipeline }))
+    response.end(JSON.stringify({ blocks: publicArchitecture, pipeline: defaultPipeline, jevConfigured: jevConfigured() }))
+    return
+  }
+  if (request.method === 'GET' && pathname === '/api/scenarios') {
+    response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
+    response.end(JSON.stringify({ scenarios: publicScenarios }))
     return
   }
   if (request.method === 'GET' && pathname === '/api/models') {
