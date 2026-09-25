@@ -9,6 +9,7 @@ import { jevConfigured } from './jev.js'
 import { publicScenarios } from './scenarios.js'
 
 const page = fileURLToPath(new URL('../public/index.html', import.meta.url))
+const stylesheet = fileURLToPath(new URL('../public/studio.css', import.meta.url))
 const questionSchema = z.string().trim().min(8).max(500)
 const schema = z.object({
   question: questionSchema,
@@ -21,8 +22,13 @@ const schema = z.object({
 createServer(async (request, response) => {
   const pathname = new URL(request.url || '/', 'http://127.0.0.1').pathname
   if (request.method === 'GET' && pathname === '/') {
-    response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+    response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' })
     response.end(await readFile(page))
+    return
+  }
+  if (request.method === 'GET' && pathname === '/studio.css') {
+    response.writeHead(200, { 'Content-Type': 'text/css; charset=utf-8', 'Cache-Control': 'no-store' })
+    response.end(await readFile(stylesheet))
     return
   }
   if (request.method === 'GET' && pathname === '/api/architecture') {
